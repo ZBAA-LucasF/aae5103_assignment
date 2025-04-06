@@ -1,9 +1,9 @@
-use dbscan::{Trajectory, TrajectoryClusterWrapper, do_cluster};
+use dbscan::{do_cluster, Trajectory, TrajectoryClusterWrapper};
+use plotters::prelude::full_palette::GREY;
+use plotters::prelude::*;
 use projection::ll_to_wmc;
 use reader::read_csv;
 use std::collections::HashMap;
-use plotters::prelude::*;
-use plotters::prelude::full_palette::GREY;
 
 fn plot_tracks(data: &HashMap<Option<usize>, Vec<Vec<(f64, f64)>>>) -> Result<(), Box<dyn std::error::Error>> {
     // 1. 创建绘图区域
@@ -37,8 +37,8 @@ fn plot_tracks(data: &HashMap<Option<usize>, Vec<Vec<(f64, f64)>>>) -> Result<()
     // 4. 配置坐标轴
     chart
         .configure_mesh()
-        .x_desc("Longitude (°)")
-        .y_desc("Latitude (°)")
+        .x_desc("Longitude")
+        .y_desc("Latitude")
         .axis_desc_style(("sans-serif", 20))
         .draw()?;
 
@@ -87,8 +87,14 @@ fn main() {
             .collect();
 
     println!("do cluster");
+
+    for i in 30..60 {
+        print!("{:.1},", i as f64 * 0.1);
+        let mut data_new = data.clone();
+        do_cluster(&mut data_new, 100, i as f64 * 0.1, 40);
+    }
     // 聚类
-    do_cluster(&mut data, 100, 3.8, 40);
+    do_cluster(&mut data, 100, 4.2, 40);
 
     println!("{}", data.len());
 
@@ -101,7 +107,7 @@ fn main() {
     });
 
     println!("{:?}", result.keys());
-    
+
     // 绘图
     let t = result
         .into_iter()
@@ -121,6 +127,6 @@ fn main() {
             )
         })
         .collect::<HashMap<_, _>>();
-    
+
     plot_tracks(&t).unwrap();
 }

@@ -1,6 +1,6 @@
 use chrono::{Duration, NaiveDateTime};
 use std::cmp::Ordering;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 // 二维点结构
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +24,7 @@ pub struct Trajectory {
 }
 
 // 轨迹聚类包装结构
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TrajectoryClusterWrapper {
     pub trajectory: Trajectory,
     pub cluster_id: Option<usize>,
@@ -239,5 +239,72 @@ pub fn do_cluster(
         orig.is_classified = resampled.is_classified;
     }
 
-    println!("Generated {} clusters", cluster_id);
+    // println!("Generated {} clusters", cluster_id);
+    print!("{},", cluster_id);
+    // 
+    // // 在聚类函数中调用
+    let silhouette = calculate_silhouette(&resampled);
+    println!("Cluster quality：");
+    println!("  - Silhouette Coefficient: {:.3}", silhouette);
+    println!("  - Ratio of Noise: {:.3}", resampled.iter().filter(|x| x.cluster_id.is_none()).count() as f64 / resampled.len() as f64);
+}
+
+
+// 轮廓系数计算
+pub fn calculate_silhouette(data: &[TrajectoryClusterWrapper]) -> f64 {
+    let cluster_map = build_cluster_map(data);
+    if cluster_map.len() <= 1 {
+        return 0.0; // 单簇无法计算轮廓系数
+    }
+
+    let mut total_score = 0.0;
+    let mut count = 0;
+
+    for (i, point) in data.iter().enumerate() {
+        if let Some(cluster_id) = point.cluster_id {
+            // 计算a：同簇内的平均距离
+            let a = cluster_map[&cluster_id]
+                .iter()
+                .filter(|&&j| j != i)
+                .map(|&j| trajectory_distance(&point.trajectory, &data[j].trajectory))
+                .sum::<f64>() / (cluster_map[&cluster_id].len() - 1) as f64;
+
+            // 计算b：到最近其他簇的最小平均距离
+            let b = cluster_map
+                .iter()
+                .filter(|&(&k, _)| k != cluster_id)
+                .map(|(_, members)| {
+                    members
+                        .iter()
+                        .map(|&j| trajectory_distance(&point.trajectory, &data[j].trajectory))
+                        .sum::<f64>()
+                        / members.len() as f64
+                })
+                .fold(f64::INFINITY, |a, b| a.min(b));
+
+            let s_i = if a < b {
+                (b - a) / b.max(a)
+            } else if a > b {
+                (b - a) / a
+            } else {
+                0.0
+            };
+
+            total_score += s_i;
+            count += 1;
+        }
+    }
+
+    total_score / count as f64
+}
+
+// 辅助函数
+fn build_cluster_map(data: &[TrajectoryClusterWrapper]) -> HashMap<usize, Vec<usize>> {
+    let mut map = HashMap::new();
+    for (i, d) in data.iter().enumerate() {
+        if let Some(cid) = d.cluster_id {
+            map.entry(cid).or_insert_with(Vec::new).push(i);
+        }
+    }
+    map
 }
