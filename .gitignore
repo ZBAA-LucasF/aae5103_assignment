@@ -1,0 +1,4 @@
+/.idea
+/target
+Cargo.lock
+/data/ZBAA ADS-B Data 20191018-20191019.csv

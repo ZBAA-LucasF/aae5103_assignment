@@ -1,0 +1,21 @@
+[package]
+name = "aae5103_assignment"
+version = "0.1.0"
+edition = "2024"
+authors = ["Lucas.F"]
+
+[[bin]]
+name = "core"
+path = "crates/core/main.rs"
+
+[dependencies]
+reader = { path = "crates/reader" }
+projection = { path = "crates/projection" }
+dbscan = { path = "crates/dbscan" }
+plotters = "*"
+
+
+[workspace]
+members = [
+    "crates/dbscan", "crates/projection", "crates/reader",
+]

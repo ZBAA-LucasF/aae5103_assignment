@@ -1,0 +1,11 @@
+[package]
+name = "dbscan"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.40"
+
+[[bin]]
+name = "dbscan_example"
+path = "src/main.rs"
